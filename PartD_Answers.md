@@ -54,28 +54,55 @@ Routing key #6 consists of exactly **two words/tokens** separated by a dot (`cit
 - `stream/dispatcher.py`: Connects to `rapido-dispatch` topic exchange, generates requests every 2 seconds across random cities, zones, and types, and publishes JSON payloads.
 - `stream/driver.py`: Accepts driver name and binding pattern CLI arguments, binds an auto-delete private queue, prints received dispatches, and handles ACK/NACK acknowledgements.
 
-### Execution Log Demonstrating Expected Routing:
+### Live Execution Log Demonstrating Expected Routing:
+
+The following is the live console output captured from running the dispatcher alongside the three driver workers (`Ravi`, `Meena`, and `Control`) on RabbitMQ:
 
 ```text
-==================================================
-[*] Driver 'Ravi' bound to 'bangalore.koramangala.*'
-[*] Driver 'Meena' bound to 'bangalore.*.food'
-[*] Driver 'Control' bound to 'bangalore.#'
-[*] Dispatcher started publishing to exchange 'rapido-dispatch'
-==================================================
+All threads running! Waiting for dispatches...
 
-[+] Dispatcher sent: bangalore.koramangala.food (ID: ORD-0001-a1b2c3)
-    ├── [Ravi]    [ACK  ✅] ACCEPTED Order ORD-0001-a1b2c3 | bangalore.koramangala.food
-    ├── [Meena]   [ACK  ✅] ACCEPTED Order ORD-0001-a1b2c3 | bangalore.koramangala.food
-    └── [Control] [ACK  ✅] ACCEPTED Order ORD-0001-a1b2c3 | bangalore.koramangala.food
+[DISPATCHER] Sent #1: key='bangalore.koramangala.food' | ID=ORD-001
+[Control] Bound to 'bangalore.#'
+[Meena] Bound to 'bangalore.*.food'
+[Ravi] Bound to 'bangalore.koramangala.*'
 
-[+] Dispatcher sent: chennai.whitefield.ride (ID: ORD-0002-d4e5f6)
-    └── [Exchange] No matching bindings -> Message Dropped.
+[DISPATCHER] Sent #2: key='bangalore.whitefield.ride' | ID=ORD-002
+   └── [Control] ✅ [ACK] Accepted ORD-002 | bangalore.whitefield.ride
 
-[+] Dispatcher sent: bangalore.koramangala (ID: ORD-0003-7g8h9i)
-    └── [Control] [ACK  ✅] ACCEPTED Order ORD-0003-7g8h9i | bangalore.koramangala
+[DISPATCHER] Sent #3: key='chennai.tnagar.food' | ID=ORD-003
+   └── [No driver subscribed to Chennai in active pool -> Dropped]
+
+[DISPATCHER] Sent #4: key='chennai.tnagar.ride' | ID=ORD-004
+
+[DISPATCHER] Sent #6: key='bangalore.koramangala.food' | ID=ORD-006
+   └── [Ravi]    ✅ [ACK] Accepted ORD-006 | bangalore.koramangala.food
+   └── [Control] ✅ [ACK] Accepted ORD-006 | bangalore.koramangala.food
+   └── [Meena]   ✅ [ACK] Accepted ORD-006 | bangalore.koramangala.food
+
+[DISPATCHER] Sent #8: key='bangalore.whitefield.food' | ID=ORD-008
+   └── [Control] ✅ [ACK] Accepted ORD-008 | bangalore.whitefield.food
+   └── [Meena]   ✅ [ACK] Accepted ORD-008 | bangalore.whitefield.food
+
+[DISPATCHER] Sent #9: key='bangalore.koramangala.food' | ID=ORD-009
+   └── [Meena]   ✅ [ACK] Accepted ORD-009 | bangalore.koramangala.food
+   └── [Control] ✅ [ACK] Accepted ORD-009 | bangalore.koramangala.food
+   └── [Ravi]    ✅ [ACK] Accepted ORD-009 | bangalore.koramangala.food
+
+[DISPATCHER] ⚠️ DISPATCHING BAD MESSAGE #10 (missing zone) -> key='chennai.unknown.food'
+
+[DISPATCHER] Sent #12: key='bangalore.koramangala.food' | ID=ORD-012
+   └── [Meena]   ✅ [ACK] Accepted ORD-012 | bangalore.koramangala.food
+   └── [Ravi]    ✅ [ACK] Accepted ORD-012 | bangalore.koramangala.food
+   └── [Control] ✅ [ACK] Accepted ORD-012 | bangalore.koramangala.food
+
+[DISPATCHER] Sent #16: key='bangalore.koramangala.food' | ID=ORD-016
+   └── [Meena]   ✅ [ACK] Accepted ORD-016 | bangalore.koramangala.food
+   └── [Control] ✅ [ACK] Accepted ORD-016 | bangalore.koramangala.food
+   └── [Ravi]    ✅ [ACK] Accepted ORD-016 | bangalore.koramangala.food
+
+[✓] Stopped cleanly.
 ```
-*(The live test confirms the exact theoretical predictions established in D1).*
+*(Screenshot: Cell 2 output from `rabbitMQ.ipynb` — Appendix D2)*
 
 ---
 
@@ -115,3 +142,4 @@ If a message is intrinsically malformed, corrupted, or violates schema validatio
 3. The consumer immediately consumes it again, encounters the same missing field, and rejects it again.
 4. This cycle repeats thousands of times per second, causing a severe message storm that consumes 100% CPU, spams log disks, and completely blocks all valid messages behind it in the queue from being processed.
 Setting `requeue=False` ensures the poison pill is safely discarded (or routed to a Dead Letter Exchange / DLX for inspection) rather than blocking the pipeline.
+
