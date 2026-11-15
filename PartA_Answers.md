@@ -7,24 +7,32 @@
 
 GitHub repository: **https://github.com/nikghost17/23bcs259_DE_Submission**
 
-```
+```text
 freshcart-pipelines/
 ├── README.md
-├── .gitignore              ← ignores .env, *.pkl, *.csv, mage.log, __pycache__/
+├── .gitignore              <- ignores .env, *.pkl, *.csv, mage.log, __pycache__/
 ├── requirements.txt
-├── elt/                    ← FreshCart ELT notebook (Part B)
-├── iris_project/           ← Mage ML project (Part C)
-├── stream/                 ← dispatcher.py and driver.py (Part D)
+├── elt/                    <- FreshCart ELT notebook (Part B)
+├── iris_project/           <- Mage ML project (Part C)
+├── stream/                 <- dispatcher.py and driver.py (Part D)
 ├── tests/
 │   └── test_prepare_data.py
 └── .github/workflows/ci.yml
 ```
 
-**`git log --oneline` output:**
-```
+### Git Commit History (`git log --oneline`):
+
+```text
+b35610a fix(ci): restore test_size to 0.2 for passing 80/20 train-test split
+f76ba6a test(ci): intentional test failure with test_size=0.3
+654f8df fix(ci): resolve requests dependency conflict and add PYTHONPATH to CI workflow
+f7d5f01 feat(ml): add Mage iris classification pipeline with eval branch and export block (Part C)
+3cbffa4 docs(elt): complete Part B5 data quality check and ETL vs ELT analysis
+eee4982 docs(elt): add Part B trace analysis, currency validation rule, and SCD2 idempotency evaluation
+642f5e9 feat: add FreshCart ELT notebook with B1 baseline run outputs (Part B)
+ec8e8c9 docs: add Part A answers - git command table and CI workflow explanation
 7289710 feat: initialise repo structure with folders, .gitignore, requirements and CI workflow
 ```
-*(Additional commits will appear here as each part is completed)*
 
 ---
 
@@ -72,6 +80,9 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: .
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -85,19 +96,10 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run tests
-        run: pytest tests/ -v
+        run: python -m pytest tests/ -v
 ```
 
-### Screenshots
-
-**Green run (passing):**
-
-> *(Screenshot to be added after Part C — `prepare_data.py` is created)*
-
-**Red run (failing — `test_size` temporarily changed to `0.3`):**
-
-> *(Screenshot to be added)*
-
-**Fix commit (restoring `test_size` to `0.2`):**
-
-> *(Screenshot to be added)*
+### Submitted Evidence:
+- **Green (passing) run**: Run #7 (`654f8df`) passed in 27s with exit code 0 (`ci_green.png` — Appendix A3-green).
+- **Red (failing) run**: Run #8 (`f76ba6a`) failed on purpose when `test_size` was set to `0.3` (`ci_red.png` — Appendix A3-red).
+- **Fix commit**: Commit `b35610a` restored `test_size=0.2` and returned CI to green.

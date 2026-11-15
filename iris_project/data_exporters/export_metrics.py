@@ -26,3 +26,4 @@ def test_metrics_saved(output, *args):
     assert os.path.exists('iris_metrics.csv'), 'iris_metrics.csv file was not created'
     saved = pd.read_csv('iris_metrics.csv')
     assert len(saved) >= 4, 'Metrics table must have at least 4 metrics'
+

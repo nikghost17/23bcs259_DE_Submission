@@ -25,3 +25,4 @@ def load_data(*args, **kwargs):
 def test_output(output, *args):
     assert output is not None, 'No data loaded'
     assert len(output) == 150, 'Iris must have 150 rows'
+
