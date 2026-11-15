@@ -193,7 +193,46 @@ This checks whether a row with the **same source, order_id, and updated_at** alr
 
 ## B5. Add One Data-Quality Check (6 marks)
 
-*(To be filled)*
+### Chosen Check:
+**`orders in silver.orders_dedup whose order_date is in the future`**
+
+### SQL Added to `quality_checks()`:
+```python
+"orders with future order date":
+    "SELECT COUNT_IF(order_date > CURRENT_DATE()) FROM silver.orders_dedup",
+```
+
+### Purposeful Failure Demonstration (`PROBLEM`):
+To test that this gate catches anomalies, a test order with a future timestamp was temporarily injected into `MOCK_WEB_ORDERS`:
+```python
+{"order_id": "ORD-9999", "cust_email": "test@freshcart.com", "cust_name": "Future Test", 
+ "order_date": "2030-01-01", "amount": "500", "currency": "INR", "pincode": "600041", 
+ "updated_at": "2030-01-01 10:00:00"}
+```
+Upon executing `run_pipeline()`, the check detected the anomaly and flagged it:
+```text
+4. CHECK
+   rows gained or lost while enriching    0   OK
+   duplicate orders in gold               0   OK
+   orders with no customer match          1   PROBLEM
+   orders with an amount but no FX rate   1   PROBLEM
+   orders with no city                    0   OK
+   orders with future order date          1   PROBLEM
+   share of rows rejected                 25%
+```
+*(Screenshot: `b5_problem.png` showing the failed check — Appendix B5)*
+
+After capturing the problem output, the mock record was removed and the pipeline returned to `0   OK`.
+
+---
+
+### Question: For FreshCart, why is ELT a better choice than ETL, and in which one situation from the lecture would ETL still win?
+
+**Why ELT is better for FreshCart (3–4 sentences):**  
+For FreshCart, ELT is vastly superior because incoming order streams arrive from multiple heterogeneous sources (web and mobile APIs) with varying, nested JSON schemas and frequent data quality discrepancies. By loading raw JSON directly into Snowflake's `bronze.orders_raw` without upfront alteration, FreshCart preserves a complete, immutable audit trail of the original raw events. All cleaning, deduplication, schema unification, and business enrichment logic are executed in SQL directly on cloud data warehouse compute, allowing developers to retrospectively modify validation rules (like the B3 currency check) or re-compute historical loyalty points (like the B4 SCD2 tier update) without needing to re-extract data from upstream APIs.
+
+**When ETL would still win:**  
+ETL still wins over ELT in situations involving strict privacy, legal, or regulatory compliance (such as GDPR, HIPAA, or PCI-DSS compliance). In these scenarios, highly sensitive personal or financial information—such as raw plaintext credit card numbers, passwords, or patient medical identifiers—must be masked, tokenized, or sanitized *in-flight* before the data is allowed to land on cloud storage or enter data warehouse disks.
 
 ---
 
